@@ -1,0 +1,15 @@
+.simple-page {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 22px;
+  min-height: calc(100vh - 90px);
+}
+
+.simple-page h1 {
+  margin: 0 0 8px;
+}
+
+.simple-page p {
+  margin: 0;
+  color: var(--muted);
+}

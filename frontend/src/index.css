@@ -1,0 +1,46 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+@media print {
+  html,
+  body,
+  #root {
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+}
+
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+html[dir="rtl"] body {
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+}
+
+.lang-switch {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line, #e6edf2);
+  border-radius: 8px;
+  background: var(--card, #fff);
+  color: var(--text, #1f2a37);
+  font: inherit;
+  cursor: pointer;
+}
+
+.login-lang {
+  position: absolute;
+  top: 24px;
+  inset-inline-end: 24px;
+  z-index: 2;
+}

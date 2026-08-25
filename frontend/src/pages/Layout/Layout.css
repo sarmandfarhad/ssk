@@ -1,0 +1,449 @@
+.app-shell {
+  --brand: #0e79a7;
+  --sidebar: #0c7fb3;
+  --page: #eef2f5;
+  --card: #ffffff;
+  --text: #1f2a37;
+  --muted: #7b8794;
+  --line: #e6edf2;
+  --header: #d7eef8;
+  --input: #ffffff;
+  --stripe: #f7fbfe;
+  --soft: #f5f8fb;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  background: var(--page);
+  color: var(--text);
+}
+
+.app-shell.is-dark {
+  color-scheme: dark;
+  --page: #121820;
+  --card: #1a242f;
+  --text: #e8eef3;
+  --muted: #9aa6b2;
+  --line: #2c3b4a;
+  --header: #143445;
+  --input: #141c26;
+  --stripe: #15202b;
+  --soft: #16222d;
+  --brand: #3aa4cc;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 22px 16px;
+  background: var(--sidebar);
+  color: #fff;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.brand-logo {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #083d57;
+  font-weight: 800;
+}
+
+.brand strong,
+.brand span {
+  display: block;
+}
+
+.brand strong {
+  font-size: 16px;
+}
+
+.brand span {
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar nav button,
+.logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar nav button svg,
+.logout svg,
+.chip svg,
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
+.sidebar nav button.is-active {
+  background: #d7eef8;
+  color: var(--brand);
+}
+
+.logout {
+  margin-top: auto;
+}
+
+.main {
+  min-width: 0;
+  padding: 18px 22px 22px;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.title-block h1 {
+  margin: 0;
+  font-size: 34px;
+}
+
+.title-block p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.top-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chip,
+.lang-switch.chip,
+.icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.chip {
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.icon-btn {
+  width: 36px;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.clock {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  font-weight: 700;
+}
+
+.profile strong,
+.profile span {
+  display: block;
+}
+
+.profile strong {
+  font-size: 13px;
+}
+
+.profile span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.app-shell.is-dark input,
+.app-shell.is-dark select,
+.app-shell.is-dark textarea {
+  background: var(--input);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.app-shell.is-dark th {
+  background: var(--header) !important;
+  color: var(--brand) !important;
+}
+
+.app-shell.is-dark td {
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.app-shell.is-dark tbody tr:nth-child(even) {
+  background: var(--stripe) !important;
+}
+
+.app-shell.is-dark tbody tr:nth-child(odd) {
+  background: transparent;
+}
+
+.app-shell.is-dark .search,
+.app-shell.is-dark .filters select,
+.app-shell.is-dark .dates,
+.app-shell.is-dark .cat-combo input,
+.app-shell.is-dark .type-combo input {
+  background: var(--input);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.app-shell.is-dark .ghost-btn {
+  background: transparent;
+  color: var(--brand);
+  border-color: var(--brand);
+}
+
+.app-shell.is-dark .pager button {
+  background: var(--input);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.app-shell.is-dark .pager button.is-active {
+  background: var(--brand);
+  color: #fff;
+}
+
+.app-shell.is-dark .dropzone,
+.app-shell.is-dark .upload-box,
+.app-shell.is-dark .summary > div,
+.app-shell.is-dark .doc-card {
+  background: var(--soft);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.app-shell.is-dark .wizard,
+.app-shell.is-dark .docs-modal,
+.app-shell.is-dark .modal,
+.app-shell.is-dark .preview-card,
+.app-shell.is-dark .wizard input,
+.app-shell.is-dark .wizard select {
+  background: var(--card);
+  color: var(--text);
+}
+
+.app-shell.is-dark .wizard label,
+.app-shell.is-dark .add-card label,
+.app-shell.is-dark .add-card h2,
+.app-shell.is-dark .list-head h2 {
+  color: var(--text);
+}
+
+.app-shell.is-dark .staff-locked,
+.app-shell.is-dark .cat-menu,
+.app-shell.is-dark .type-menu {
+  background: var(--input) !important;
+  color: var(--text) !important;
+}
+
+.app-shell.is-dark .icon-link {
+  color: var(--text);
+}
+
+.app-shell.is-dark .wizard-head h2,
+.app-shell.is-dark .wizard h3,
+.app-shell.is-dark .summary h4,
+.app-shell.is-dark .summary p,
+.app-shell.is-dark .success-copy {
+  color: var(--text);
+}
+
+.app-shell.is-dark .summary p {
+  color: var(--muted);
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  html,
+  body,
+  #root,
+  .app-shell,
+  .main,
+  .drivers-wrap,
+  .receipts-wrap {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #16324a !important;
+  }
+
+  .app-shell {
+    grid-template-columns: none !important;
+  }
+
+  .sidebar,
+  .topbar,
+  .page-head,
+  .receipts-page,
+  .drivers-page,
+  .drivers-toolbar,
+  .modal-back,
+  .docs-modal,
+  .filters,
+  .pager,
+  .expense-wrap,
+  .settings-wrap,
+  .simple-page {
+    display: none !important;
+  }
+
+  .main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .print-sheet {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #16324a !important;
+    page-break-after: avoid;
+    page-break-inside: avoid;
+    break-after: avoid;
+    break-inside: avoid;
+  }
+
+  .print-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+    border-bottom: 2px solid #0e79a7;
+  }
+
+  .print-head strong,
+  .print-head span {
+    display: block;
+  }
+
+  .print-head strong {
+    font-size: 15px;
+    color: #0e79a7;
+  }
+
+  .print-head span {
+    margin-top: 2px;
+    font-size: 11px;
+    color: #5b6b78;
+  }
+
+  .print-head h1 {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .print-head p {
+    margin: 0;
+    font-size: 11px;
+    color: #5b6b78;
+  }
+
+  .print-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 20px;
+  }
+
+  .print-grid h2 {
+    margin: 0 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #d7e3ea;
+    color: #0e79a7;
+    font-size: 13px;
+  }
+
+  .print-grid p {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 0 5px;
+    font-size: 12px;
+  }
+
+  .print-grid span {
+    color: #5b6b78;
+  }
+
+  .print-sheet footer {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #d7e3ea;
+    color: #8a97a6;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    min-height: auto;
+  }
+}
