@@ -59,3 +59,12 @@ CREATE TABLE IF NOT EXISTS expenses (
   attachment_file VARCHAR(255),
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS receipt_invoices (
+  id SERIAL PRIMARY KEY,
+  receipt_id INTEGER NOT NULL UNIQUE REFERENCES receipts(id) ON DELETE CASCADE,
+  items JSONB NOT NULL DEFAULT '[]'::jsonb,
+  total_amount NUMERIC(14, 0) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);

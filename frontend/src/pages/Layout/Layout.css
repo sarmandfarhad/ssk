@@ -48,13 +48,15 @@
 }
 
 .brand-logo {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
   border-radius: 50%;
-  background: #083d57;
-  font-weight: 800;
+  object-fit: cover;
+  object-position: 16% 46%;
+  background: #0a0a0a;
+  border: 2px solid #c9a227;
+  box-shadow: 0 0 0 1px rgba(201, 162, 39, 0.25);
 }
 
 .brand strong,
@@ -203,6 +205,27 @@
   font-size: 12px;
 }
 
+.app-shell table {
+  background: var(--card);
+  color: var(--text);
+}
+
+.app-shell th {
+  background: var(--header);
+  color: var(--brand);
+}
+
+.app-shell td {
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.app-shell option,
+.app-shell optgroup {
+  background: var(--input);
+  color: var(--text);
+}
+
 .app-shell.is-dark input,
 .app-shell.is-dark select,
 .app-shell.is-dark textarea {
@@ -211,30 +234,60 @@
   border-color: var(--line);
 }
 
+.app-shell.is-dark input[type="date"]::-webkit-calendar-picker-indicator,
+.app-shell.is-dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85);
+}
+
+.app-shell.is-dark table,
+.app-shell.is-dark .table-wrap,
+.app-shell.is-dark thead,
+.app-shell.is-dark tbody,
+.app-shell.is-dark tr {
+  background: var(--card);
+  color: var(--text);
+}
+
 .app-shell.is-dark th {
   background: var(--header) !important;
   color: var(--brand) !important;
 }
 
 .app-shell.is-dark td {
-  color: var(--text);
+  background: var(--card) !important;
+  color: var(--text) !important;
   border-color: var(--line);
 }
 
-.app-shell.is-dark tbody tr:nth-child(even) {
+.app-shell.is-dark tbody tr:nth-child(even),
+.app-shell.is-dark tbody tr:nth-child(even) td {
   background: var(--stripe) !important;
 }
 
-.app-shell.is-dark tbody tr:nth-child(odd) {
-  background: transparent;
+.app-shell.is-dark tbody tr:hover td,
+.app-shell.is-dark tbody tr.is-row:hover td {
+  background: var(--soft) !important;
+}
+
+.app-shell.is-dark .empty {
+  color: var(--muted) !important;
 }
 
 .app-shell.is-dark .search,
 .app-shell.is-dark .filters select,
 .app-shell.is-dark .dates,
-.app-shell.is-dark .cat-combo input,
-.app-shell.is-dark .type-combo input {
+.app-shell.is-dark .cat-combo-control,
+.app-shell.is-dark .type-combo-control {
   background: var(--input);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.app-shell.is-dark .cat-combo input,
+.app-shell.is-dark .type-combo input,
+.app-shell.is-dark .cat-caret,
+.app-shell.is-dark .type-caret {
+  background: transparent;
   color: var(--text);
   border-color: var(--line);
 }
@@ -270,13 +323,24 @@
 .app-shell.is-dark .modal,
 .app-shell.is-dark .preview-card,
 .app-shell.is-dark .wizard input,
-.app-shell.is-dark .wizard select {
-  background: var(--card);
+.app-shell.is-dark .wizard select,
+.app-shell.is-dark .wizard textarea,
+.app-shell.is-dark .wizard input:focus,
+.app-shell.is-dark .wizard select:focus,
+.app-shell.is-dark .receipt-wizard input:focus,
+.app-shell.is-dark .receipt-wizard select:focus,
+.app-shell.is-dark .receipt-wizard textarea:focus {
+  background: var(--input);
   color: var(--text);
 }
 
-.app-shell.is-dark .wizard label,
-.app-shell.is-dark .add-card label,
+.app-shell.is-dark .wizard,
+.app-shell.is-dark .docs-modal,
+.app-shell.is-dark .modal,
+.app-shell.is-dark .preview-card {
+  background: var(--card);
+}
+
 .app-shell.is-dark .add-card h2,
 .app-shell.is-dark .list-head h2 {
   color: var(--text);
@@ -284,9 +348,22 @@
 
 .app-shell.is-dark .staff-locked,
 .app-shell.is-dark .cat-menu,
-.app-shell.is-dark .type-menu {
+.app-shell.is-dark .type-menu,
+.app-shell.is-dark .cat-menu button,
+.app-shell.is-dark .cat-menu span,
+.app-shell.is-dark .type-menu button,
+.app-shell.is-dark .type-menu span {
   background: var(--input) !important;
   color: var(--text) !important;
+  border-color: var(--line);
+}
+
+.app-shell.is-dark .cat-menu button:hover,
+.app-shell.is-dark .type-menu button:hover,
+.app-shell.is-dark .cat-add,
+.app-shell.is-dark .type-add {
+  background: var(--soft) !important;
+  color: var(--brand) !important;
 }
 
 .app-shell.is-dark .icon-link {
@@ -295,14 +372,97 @@
 
 .app-shell.is-dark .wizard-head h2,
 .app-shell.is-dark .wizard h3,
+.app-shell.is-dark .receipt-wizard h3,
 .app-shell.is-dark .summary h4,
-.app-shell.is-dark .summary p,
 .app-shell.is-dark .success-copy {
   color: var(--text);
 }
 
-.app-shell.is-dark .summary p {
+.app-shell.is-dark .summary p,
+.app-shell.is-dark .receipt-wizard label,
+.app-shell.is-dark .wizard label,
+.app-shell.is-dark .add-card label,
+.app-shell.is-dark .muted,
+.app-shell.is-dark .type-caret,
+.app-shell.is-dark .cat-caret {
   color: var(--muted);
+}
+
+.app-shell.is-dark .mini-avatar {
+  background: var(--header);
+  color: var(--brand);
+}
+
+.app-shell.is-dark .badge-pending {
+  color: #f0c14b;
+  background: rgba(211, 155, 0, 0.22);
+}
+
+.app-shell.is-dark .badge-delivered,
+.app-shell.is-dark .badge-paid {
+  color: #4ade80;
+  background: rgba(31, 157, 87, 0.22);
+}
+
+.app-shell.is-dark .badge-in-transmit {
+  color: #7eb6ff;
+  background: rgba(47, 128, 237, 0.22);
+}
+
+.app-shell.is-dark .badge-canceled,
+.app-shell.is-dark .badge-unpaid {
+  color: #f87171;
+  background: rgba(214, 69, 69, 0.22);
+}
+
+.app-shell.is-dark .invoice-badge.is-yes {
+  color: #4ade80;
+  background: rgba(13, 122, 69, 0.22);
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+.app-shell.is-dark .invoice-badge.is-create {
+  color: #7ec8e3;
+  background: rgba(14, 121, 167, 0.22);
+  border-color: rgba(58, 164, 204, 0.4);
+}
+
+.app-shell.is-dark .invoice-badge.is-off {
+  color: var(--muted);
+  background: rgba(138, 151, 166, 0.16);
+  border-color: var(--line);
+}
+
+.app-shell.is-dark .staff-tag {
+  background: var(--header);
+  color: var(--brand);
+}
+
+.app-shell.is-dark .staff-shahram {
+  background: rgba(3, 105, 161, 0.28);
+  color: #7dd3fc;
+}
+
+.app-shell.is-dark .staff-kamaran {
+  background: rgba(124, 58, 237, 0.28);
+  color: #d8b4fe;
+}
+
+.app-shell.is-dark .cat-fuel { color: #c4b5fd; }
+.app-shell.is-dark .cat-maintenance { color: #60a5fa; }
+.app-shell.is-dark .cat-repair { color: #4ade80; }
+.app-shell.is-dark .cat-driver-expense { color: #fbbf24; }
+.app-shell.is-dark .cat-toll { color: #f87171; }
+.app-shell.is-dark .cat-parking,
+.app-shell.is-dark .cat-custom { color: var(--brand); }
+
+.app-shell.is-dark .row-btn.view,
+.app-shell.is-dark .row-btn.edit {
+  color: var(--brand);
+}
+
+.app-shell.is-dark .panel {
+  border-color: var(--line);
 }
 
 @media print {
@@ -322,6 +482,16 @@
     height: auto !important;
     min-height: 0 !important;
     overflow: visible !important;
+    background: #fff !important;
+    color: #16324a !important;
+  }
+
+  .app-shell table,
+  .app-shell thead,
+  .app-shell tbody,
+  .app-shell tr,
+  .app-shell th,
+  .app-shell td {
     background: #fff !important;
     color: #16324a !important;
   }
@@ -368,12 +538,28 @@
 
   .print-head {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
     gap: 10px;
     padding-bottom: 8px;
     margin-bottom: 10px;
     border-bottom: 2px solid #0e79a7;
+  }
+
+  .print-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .print-logo {
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: 16% 46%;
+    border: 1.5px solid #c9a227;
   }
 
   .print-head strong,
@@ -435,6 +621,41 @@
     border-top: 1px solid #d7e3ea;
     color: #8a97a6;
     font-size: 10px;
+  }
+
+  .print-costs {
+    margin-top: 14px;
+  }
+
+  .print-costs h2 {
+    margin: 0 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #d7e3ea;
+    color: #0e79a7;
+    font-size: 13px;
+  }
+
+  .print-costs p {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 0 5px;
+    font-size: 12px;
+  }
+
+  .print-costs span {
+    color: #5b6b78;
+  }
+
+  .print-costs .print-total {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 2px solid #0e79a7;
+    font-size: 14px;
+  }
+
+  .print-costs .print-total b {
+    color: #0e79a7;
   }
 }
 

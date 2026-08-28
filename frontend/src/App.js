@@ -82,7 +82,7 @@ function App() {
       {page === "receipts" ? <Receipts /> : null}
       {page === "drivers" ? <Drivers /> : null}
       {page === "expenses" ? <ExpenseClaims user={user} /> : null}
-      {page === "dashboard" ? <Dashboard /> : null}
+      {page === "dashboard" ? <Dashboard onPage={setPage} /> : null}
       {page === "setting" ? (
         <Setting
           user={user}

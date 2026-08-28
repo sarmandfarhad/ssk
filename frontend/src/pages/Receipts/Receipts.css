@@ -321,13 +321,13 @@ tbody tr.is-row:hover td {
 
 .wizard-head h2 {
   margin: 0;
-  color: #16324a;
+  color: var(--text);
   font-size: 28px;
 }
 
 .wizard-head p {
   margin: 6px 0 0;
-  color: #8a97a6;
+  color: var(--muted);
 }
 
 .icon-close {
@@ -336,7 +336,7 @@ tbody tr.is-row:hover td {
   border: 0;
   background: transparent;
   font-size: 28px;
-  color: #7b8794;
+  color: var(--muted);
   cursor: pointer;
 }
 
@@ -415,7 +415,7 @@ tbody tr.is-row:hover td {
 
 .panel {
   padding: 16px 16px 8px;
-  border: 1px solid #edf2f6;
+  border: 1px solid var(--line);
   border-radius: 14px;
   margin-bottom: 16px;
 }
@@ -425,7 +425,7 @@ tbody tr.is-row:hover td {
   align-items: center;
   gap: 8px;
   margin: 0 0 14px;
-  color: #16324a;
+  color: var(--text);
   font-size: 16px;
 }
 
@@ -458,19 +458,18 @@ tbody tr.is-row:hover td {
 
 .receipt-wizard label {
   display: block;
-  color: #4b5b68;
+  color: var(--muted);
   font-size: 13px;
 }
 
 .receipt-wizard input,
 .receipt-wizard select,
-.receipt-wizard textarea,
-.type-combo input {
+.receipt-wizard textarea {
   width: 100%;
   height: 44px;
   margin-top: 6px;
   padding: 0 12px;
-  border: 1px solid #e6edf2;
+  border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--soft);
   color: var(--text);
@@ -486,10 +485,9 @@ tbody tr.is-row:hover td {
 
 .receipt-wizard input:focus,
 .receipt-wizard select:focus,
-.receipt-wizard textarea:focus,
-.type-combo input:focus {
-  border-color: #0e79a7;
-  background: var(--card);
+.receipt-wizard textarea:focus {
+  border-color: var(--brand);
+  background: var(--input);
 }
 
 .span-2 {
@@ -498,24 +496,70 @@ tbody tr.is-row:hover td {
 
 .type-combo {
   position: relative;
+  margin-top: 6px;
 }
 
+.type-combo.is-off {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.type-combo-control {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--soft);
+  overflow: hidden;
+}
+
+.type-combo-control:focus-within {
+  border-color: var(--brand);
+  background: var(--input);
+}
+
+.receipt-wizard .type-combo input,
 .type-combo input {
-  padding-inline-end: 36px;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto !important;
+  height: 100%;
+  margin: 0 !important;
+  padding-block: 0;
+  padding-inline: 12px;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+  box-shadow: none;
 }
 
 .type-caret {
-  position: absolute;
-  inset-inline-end: 8px;
-  top: calc(50% + 3px);
-  transform: translateY(-50%);
+  position: static;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
   border: 0;
+  border-inline-start: 1px solid var(--line);
   background: transparent;
-  color: #4b5b68;
+  color: var(--muted);
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
-  padding: 4px;
+  transform: none;
+}
+
+.type-caret:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .type-menu {
@@ -527,7 +571,7 @@ tbody tr.is-row:hover td {
   max-height: 200px;
   overflow: auto;
   background: var(--card);
-  border: 1px solid #e6edf2;
+  border: 1px solid var(--line);
   border-radius: 10px;
   box-shadow: 0 8px 20px rgba(16, 32, 48, 0.12);
 }
@@ -555,8 +599,8 @@ tbody tr.is-row:hover td {
 
 .type-menu button:hover,
 .type-add {
-  background: #f3faff;
-  color: #0e79a7;
+  background: var(--soft);
+  color: var(--brand);
 }
 
 .field-control {
@@ -571,7 +615,7 @@ tbody tr.is-row:hover td {
   width: 16px;
   height: 16px;
   transform: translateY(-50%);
-  color: #8a97a6;
+  color: var(--muted);
   pointer-events: none;
   z-index: 1;
 }
@@ -591,7 +635,7 @@ tbody tr.is-row:hover td {
   inset-inline-end: 12px;
   top: calc(50% + 3px);
   transform: translateY(-50%);
-  color: #8a97a6;
+  color: var(--muted);
   font-size: 12px;
   font-style: normal;
   font-weight: 700;
@@ -665,7 +709,7 @@ tbody tr.is-row:hover td {
 
 .success-copy {
   margin: 0 0 18px;
-  color: #8a97a6;
+  color: var(--muted);
 }
 
 .summary {
@@ -684,7 +728,7 @@ tbody tr.is-row:hover td {
 
 .summary h4 {
   margin: 0 0 12px;
-  color: #16324a;
+  color: var(--text);
 }
 
 .summary p {
@@ -692,7 +736,7 @@ tbody tr.is-row:hover td {
   justify-content: space-between;
   gap: 12px;
   margin: 0 0 8px;
-  color: #5b6b78;
+  color: var(--muted);
 }
 
 html[dir="rtl"] .receipts-wrap th,
@@ -772,13 +816,151 @@ html[dir="rtl"] .next-btn {
   display: none;
 }
 
+.invoice-cell {
+  white-space: nowrap;
+}
+
+.invoice-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+button.invoice-badge {
+  cursor: pointer;
+}
+
+.invoice-badge.is-yes {
+  color: #0d7a45;
+  background: #e8f8ef;
+  border-color: #b7e4c7;
+}
+
+.invoice-badge.is-create {
+  color: #0e79a7;
+  background: #e8f4fa;
+  border-color: #b8d9e8;
+}
+
+.invoice-badge.is-off {
+  color: #8a97a6;
+  background: #f2f5f7;
+  border-color: #d7e3ea;
+}
+
+.modal.invoice-modal {
+  width: min(920px, calc(100% - 24px));
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+}
+
+.invoice-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.invoice-hint {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.invoice-lines {
+  display: grid;
+  gap: 8px;
+}
+
+.invoice-line-head,
+.invoice-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(120px, 0.7fr) 40px;
+  gap: 8px;
+  align-items: center;
+}
+
+.invoice-line-head {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.invoice-line input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.invoice-line-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.invoice-total {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+}
+
+.invoice-total span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.invoice-total b {
+  font-size: 18px;
+  color: var(--text);
+}
+
+.page-ok {
+  margin: 0 0 12px;
+  color: #0d7a45;
+  font-size: 14px;
+}
+
+.app-shell.is-dark .invoice-badge.is-yes {
+  color: #4ade80;
+  background: rgba(13, 122, 69, 0.22);
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+.app-shell.is-dark .invoice-badge.is-create {
+  color: #7ec8e3;
+  background: rgba(14, 121, 167, 0.22);
+  border-color: rgba(58, 164, 204, 0.4);
+}
+
+.app-shell.is-dark .invoice-badge.is-off {
+  color: var(--muted);
+  background: rgba(138, 151, 166, 0.16);
+  border-color: var(--line);
+}
+
 @media (max-width: 900px) {
   .wizard-head,
   .grid-2,
   .grid-3,
   .ship-grid,
-  .summary {
+  .summary,
+  .invoice-summary {
     grid-template-columns: 1fr;
+  }
+
+  .invoice-line-head,
+  .invoice-line {
+    grid-template-columns: minmax(0, 1fr) minmax(100px, 0.7fr) 40px;
   }
 
   .stepper {

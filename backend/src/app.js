@@ -5,12 +5,13 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const { query, ensureDatabase } = require("./config/db");
 const { ensureVehicleTypes, saveVehicleType } = require("./api/controllers/driver.controller");
-const { seedReceiptOptions } = require("./api/controllers/receipt.controller");
+const { seedReceiptOptions, ensureReceiptInvoices } = require("./api/controllers/receipt.controller");
 const path = require("path");
 const authRoutes = require("./api/routes/auth.routes");
 const receiptRoutes = require("./api/routes/receipt.routes");
 const driverRoutes = require("./api/routes/driver.routes");
 const expenseRoutes = require("./api/routes/expense.routes");
+const dashboardRoutes = require("./api/routes/dashboard.routes");
 
 const app = express();
 const port = Number(process.env.PORT) || 4000;
@@ -27,6 +28,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/receipts", receiptRoutes);
 app.use("/api/drivers", driverRoutes);
 app.use("/api/expenses", expenseRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 const accounts = [
   { name: "Shahram", email: "shahram@ssk.com", role: "Admin" },
@@ -132,6 +134,17 @@ async function seedReceipts() {
   await query("ALTER TABLE receipts ADD COLUMN IF NOT EXISTS driver_id INTEGER");
   await query("ALTER TABLE receipts ADD COLUMN IF NOT EXISTS notes TEXT");
 
+  await query(`
+    CREATE TABLE IF NOT EXISTS app_flags (
+      key VARCHAR(60) PRIMARY KEY,
+      value TEXT
+    )
+  `);
+  const cleared = await query("SELECT key FROM app_flags WHERE key = 'demo_data_cleared'");
+  if (cleared.rowCount) {
+    return;
+  }
+
   const existing = await query("SELECT COUNT(*)::int AS count FROM receipts");
   if (existing.rows[0].count > 0) {
     return;
@@ -174,6 +187,17 @@ async function seedDrivers() {
       updated_at TIMESTAMP DEFAULT NOW()
     )
   `);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS app_flags (
+      key VARCHAR(60) PRIMARY KEY,
+      value TEXT
+    )
+  `);
+  const cleared = await query("SELECT key FROM app_flags WHERE key = 'demo_data_cleared'");
+  if (cleared.rowCount) {
+    return;
+  }
 
   const existing = await query("SELECT COUNT(*)::int AS count FROM drivers");
   if (existing.rows[0].count > 0) {
@@ -223,6 +247,16 @@ async function seedExpenses() {
 
 async function seedVehicleTypes() {
   await ensureVehicleTypes();
+  await query(`
+    CREATE TABLE IF NOT EXISTS app_flags (
+      key VARCHAR(60) PRIMARY KEY,
+      value TEXT
+    )
+  `);
+  const cleared = await query("SELECT key FROM app_flags WHERE key = 'demo_data_cleared'");
+  if (cleared.rowCount) {
+    return;
+  }
   const defaults = ["Truck", "Van", "Pickup"];
   for (const name of defaults) {
     await saveVehicleType(name);
@@ -237,6 +271,7 @@ async function start() {
   await ensureDatabase();
   await seedUsers();
   await seedReceipts();
+  await ensureReceiptInvoices();
   await seedReceiptOptions();
   await seedDrivers();
   await seedVehicleTypes();

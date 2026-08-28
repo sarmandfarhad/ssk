@@ -152,34 +152,36 @@ function TypeCombo({ value, onChange, options, onSaveCustom, t }) {
 
   return (
     <div className="type-combo">
-      <input
-        value={text}
-        placeholder={t ? t("selectVehicleType") : "select vehicle type"}
-        onFocus={() => setOpen(true)}
-        onChange={(event) => {
-          onChange(event.target.value);
-          setOpen(true);
-        }}
-        onBlur={() => setTimeout(commit, 150)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
+      <div className="type-combo-control">
+        <input
+          value={text}
+          placeholder={t ? t("selectVehicleType") : "select vehicle type"}
+          onFocus={() => setOpen(true)}
+          onChange={(event) => {
+            onChange(event.target.value);
+            setOpen(true);
+          }}
+          onBlur={() => setTimeout(commit, 150)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commit();
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="type-caret"
+          tabIndex={-1}
+          aria-label="Show vehicle types"
+          onMouseDown={(event) => {
             event.preventDefault();
-            commit();
-          }
-        }}
-      />
-      <button
-        type="button"
-        className="type-caret"
-        tabIndex={-1}
-        aria-label="Show vehicle types"
-        onMouseDown={(event) => {
-          event.preventDefault();
-          setOpen((current) => !current);
-        }}
-      >
-        ▾
-      </button>
+            setOpen((current) => !current);
+          }}
+        >
+          ▾
+        </button>
+      </div>
       {open ? (
         <div className="type-menu">
           {filtered.map((item) => (
@@ -729,9 +731,12 @@ function Drivers() {
       {saved ? (
         <section className="print-sheet">
           <header className="print-head">
-            <div>
-              <strong>SSK Company</strong>
-              <span>System Transferring</span>
+            <div className="print-brand">
+              <img className="print-logo" src="/ssk-logo.png" alt="SSK" />
+              <div>
+                <strong>SSK Company</strong>
+                <span>System Transferring</span>
+              </div>
             </div>
               <h1>{t("driverDetails")}</h1>
               <p>{t("record", { id: saved.id || "-" })}</p>

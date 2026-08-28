@@ -49,11 +49,21 @@ function Layout({ user, page, onPage, onLogout, children, dark, onToggleDark, pr
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.colorScheme = dark ? "dark" : "light";
+    root.classList.toggle("is-dark", dark);
+    return () => {
+      root.style.colorScheme = "";
+      root.classList.remove("is-dark");
+    };
+  }, [dark]);
+
   return (
     <div className={`app-shell ${dark ? "is-dark" : ""}`}>
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-logo">S</div>
+          <img className="brand-logo" src="/ssk-logo.png" alt="SSK Transport & Logistics" />
           <div>
             <strong>{prefs?.company || "SSK Company"}</strong>
             <span>{prefs?.tagline || "System Transferring"}</span>

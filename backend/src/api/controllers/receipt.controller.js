@@ -5,8 +5,57 @@ function toInt(value, fallback) {
   return Number.isFinite(number) && number > 0 ? number : fallback;
 }
 
+async function ensureReceiptInvoices() {
+  await query(`
+    CREATE TABLE IF NOT EXISTS receipt_invoices (
+      id SERIAL PRIMARY KEY,
+      receipt_id INTEGER NOT NULL UNIQUE REFERENCES receipts(id) ON DELETE CASCADE,
+      items JSONB NOT NULL DEFAULT '[]'::jsonb,
+      total_amount NUMERIC(14, 0) NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+}
+
+function normalizeInvoiceItems(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  const items = [];
+  for (const row of list) {
+    const name = String(row?.name || "").trim();
+    const amount = Number(row?.amount_iqd ?? row?.amount);
+    if (!name && !(Number.isFinite(amount) && amount !== 0)) {
+      continue;
+    }
+    if (!name) {
+      throw new Error("Each invoice line needs a name.");
+    }
+    if (!Number.isFinite(amount) || amount < 0) {
+      throw new Error("Each invoice line needs a valid IQD amount.");
+    }
+    items.push({ name, amount_iqd: Math.round(amount) });
+  }
+  return items;
+}
+
+function invoiceTotal(items) {
+  return items.reduce((sum, row) => sum + Number(row.amount_iqd || 0), 0);
+}
+
+async function receiptWithInvoiceFlag(id) {
+  const result = await query(
+    `SELECT r.*,
+      EXISTS(SELECT 1 FROM receipt_invoices i WHERE i.receipt_id = r.id) AS has_invoice
+     FROM receipts r
+     WHERE r.id = $1`,
+    [id]
+  );
+  return result.rows[0] || null;
+}
+
 async function list(req, res) {
   try {
+    await ensureReceiptInvoices();
     const search = String(req.query.search || "").trim();
     const deliveryStatus = String(req.query.delivery_status || "").trim();
     const paymentStatus = String(req.query.payment_status || "").trim();
@@ -59,7 +108,12 @@ async function list(req, res) {
     params.push(limit);
     params.push(offset);
     const result = await query(
-      `SELECT * FROM receipts ${where} ORDER BY id DESC LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      `SELECT r.*,
+        EXISTS(SELECT 1 FROM receipt_invoices i WHERE i.receipt_id = r.id) AS has_invoice
+       FROM receipts r
+       ${where}
+       ORDER BY r.id DESC
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params
     );
 
@@ -235,7 +289,8 @@ async function create(req, res) {
     await saveOption("receiving_location", receiving);
     await saveOption("delivery_location", delivery);
 
-    return res.status(201).json({ item: result.rows[0] });
+    const item = await receiptWithInvoiceFlag(result.rows[0].id);
+    return res.status(201).json({ item });
   } catch (error) {
     console.error("Create receipt error:", error);
     return res.status(500).json({ message: "Could not add receipt." });
@@ -269,15 +324,14 @@ async function update(req, res) {
       if (!delivery && !payment) {
         return res.status(400).json({ message: "Choose a status to update." });
       }
-      const result = await query(
+      await query(
         `UPDATE receipts SET
           delivery_status = COALESCE($2, delivery_status),
           payment_status = COALESCE($3, payment_status)
-         WHERE id = $1
-         RETURNING *`,
+         WHERE id = $1`,
         [req.params.id, delivery || null, payment || null]
       );
-      return res.json({ item: result.rows[0] });
+      return res.json({ item: await receiptWithInvoiceFlag(req.params.id) });
     }
 
     const customerName = String(body.customer_name || "").trim();
@@ -331,7 +385,7 @@ async function update(req, res) {
     await saveOption("receiving_location", receiving);
     await saveOption("delivery_location", deliveryLoc);
 
-    return res.json({ item: result.rows[0] });
+    return res.json({ item: await receiptWithInvoiceFlag(result.rows[0].id) });
   } catch (error) {
     console.error("Update receipt error:", error);
     return res.status(500).json({ message: "Could not update receipt." });
@@ -340,8 +394,8 @@ async function update(req, res) {
 
 async function one(req, res) {
   try {
-    const result = await query("SELECT * FROM receipts WHERE id = $1", [req.params.id]);
-    const item = result.rows[0];
+    await ensureReceiptInvoices();
+    const item = await receiptWithInvoiceFlag(req.params.id);
     if (!item) {
       return res.status(404).json({ message: "Receipt not found." });
     }
@@ -365,4 +419,102 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { list, create, one, update, remove, listOptions, addOption, seedReceiptOptions };
+async function getInvoice(req, res) {
+  try {
+    await ensureReceiptInvoices();
+    const receipt = await receiptWithInvoiceFlag(req.params.id);
+    if (!receipt) {
+      return res.status(404).json({ message: "Receipt not found." });
+    }
+    const result = await query(
+      "SELECT id, receipt_id, items, total_amount, created_at, updated_at FROM receipt_invoices WHERE receipt_id = $1",
+      [req.params.id]
+    );
+    return res.json({
+      receipt,
+      item: result.rows[0] || null,
+    });
+  } catch (error) {
+    console.error("Get invoice error:", error);
+    return res.status(500).json({ message: "Could not load invoice." });
+  }
+}
+
+async function upsertInvoice(req, res) {
+  try {
+    await ensureReceiptInvoices();
+    const receipt = await receiptWithInvoiceFlag(req.params.id);
+    if (!receipt) {
+      return res.status(404).json({ message: "Receipt not found." });
+    }
+    if (receipt.delivery_status !== "Delivered") {
+      return res.status(400).json({ message: "Invoice is only available when delivery status is Delivered." });
+    }
+
+    let items;
+    try {
+      items = normalizeInvoiceItems(req.body?.items);
+    } catch (validationError) {
+      return res.status(400).json({ message: validationError.message });
+    }
+    if (!items.length) {
+      return res.status(400).json({ message: "Add at least one invoice line." });
+    }
+
+    const total = invoiceTotal(items);
+    const result = await query(
+      `INSERT INTO receipt_invoices (receipt_id, items, total_amount, updated_at)
+       VALUES ($1, $2::jsonb, $3, NOW())
+       ON CONFLICT (receipt_id) DO UPDATE SET
+         items = EXCLUDED.items,
+         total_amount = EXCLUDED.total_amount,
+         updated_at = NOW()
+       RETURNING id, receipt_id, items, total_amount, created_at, updated_at`,
+      [req.params.id, JSON.stringify(items), total]
+    );
+
+    return res.json({
+      receipt: await receiptWithInvoiceFlag(req.params.id),
+      item: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Upsert invoice error:", error);
+    return res.status(500).json({ message: "Could not save invoice." });
+  }
+}
+
+async function removeInvoice(req, res) {
+  try {
+    await ensureReceiptInvoices();
+    const receipt = await receiptWithInvoiceFlag(req.params.id);
+    if (!receipt) {
+      return res.status(404).json({ message: "Receipt not found." });
+    }
+    const result = await query(
+      "DELETE FROM receipt_invoices WHERE receipt_id = $1 RETURNING id",
+      [req.params.id]
+    );
+    if (!result.rowCount) {
+      return res.status(404).json({ message: "Invoice not found." });
+    }
+    return res.json({ ok: true, receipt: await receiptWithInvoiceFlag(req.params.id) });
+  } catch (error) {
+    console.error("Delete invoice error:", error);
+    return res.status(500).json({ message: "Could not delete invoice." });
+  }
+}
+
+module.exports = {
+  list,
+  create,
+  one,
+  update,
+  remove,
+  listOptions,
+  addOption,
+  seedReceiptOptions,
+  ensureReceiptInvoices,
+  getInvoice,
+  upsertInvoice,
+  removeInvoice,
+};

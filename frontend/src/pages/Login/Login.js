@@ -79,7 +79,10 @@ function Login({ onLogin }) {
     <div className="login-page">
       <LanguageSelect className="lang-switch login-lang" />
       <form className="login-card" onSubmit={handleSubmit}>
-        <h1>SSK</h1>
+        <div className="login-brand">
+          <img className="login-logo" src="/ssk-logo.png" alt="SSK Transport & Logistics" />
+          <h1>SSK</h1>
+        </div>
 
         <label className="login-field">
           <span>{t("email")}</span>

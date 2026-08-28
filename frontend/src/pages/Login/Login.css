@@ -31,13 +31,32 @@
   border: 1.5px solid var(--brand);
 }
 
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.login-logo {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 16% 46%;
+  background: #0a0a0a;
+  border: 3px solid #c9a227;
+  box-shadow: 0 8px 28px rgba(14, 121, 167, 0.18);
+}
+
 .login-card h1 {
-  margin: 0 0 10px;
+  margin: 0;
   text-align: center;
-  font-size: 64px;
+  font-size: 36px;
   line-height: 1;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   color: var(--brand);
 }
 
@@ -186,8 +205,13 @@
     padding: 36px 28px;
   }
 
+  .login-logo {
+    width: 104px;
+    height: 104px;
+  }
+
   .login-card h1 {
-    font-size: 48px;
+    font-size: 28px;
   }
 
   .login-page {

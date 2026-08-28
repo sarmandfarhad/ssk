@@ -47,34 +47,36 @@ function CategoryCombo({ value, onChange, options, onAdd, t }) {
 
   return (
     <div className="cat-combo">
-      <input
-        value={text}
-        placeholder={t("selectCategorie")}
-        onFocus={() => setOpen(true)}
-        onChange={(event) => {
-          onChange(event.target.value);
-          setOpen(true);
-        }}
-        onBlur={() => setTimeout(commit, 150)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
+      <div className="cat-combo-control">
+        <input
+          value={text}
+          placeholder={t("selectCategorie")}
+          onFocus={() => setOpen(true)}
+          onChange={(event) => {
+            onChange(event.target.value);
+            setOpen(true);
+          }}
+          onBlur={() => setTimeout(commit, 150)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              commit();
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="cat-caret"
+          tabIndex={-1}
+          aria-label="Show categories"
+          onMouseDown={(event) => {
             event.preventDefault();
-            commit();
-          }
-        }}
-      />
-      <button
-        type="button"
-        className="cat-caret"
-        tabIndex={-1}
-        aria-label="Show categories"
-        onMouseDown={(event) => {
-          event.preventDefault();
-          setOpen((current) => !current);
-        }}
-      >
-        ▾
-      </button>
+            setOpen((current) => !current);
+          }}
+        >
+          ▾
+        </button>
+      </div>
       {open ? (
         <div className="cat-menu">
           {filtered.map((item) => (

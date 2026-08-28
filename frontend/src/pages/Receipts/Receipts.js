@@ -81,6 +81,22 @@ function vehicleOf(driver) {
   return `${driver.vehicle_type} - ${driver.plate_number}`;
 }
 
+function emptyInvoiceLine() {
+  return { name: "", amount_iqd: "" };
+}
+
+function defaultInvoiceLines() {
+  return [emptyInvoiceLine()];
+}
+
+function isDelivered(item) {
+  return String(item?.delivery_status || "") === "Delivered";
+}
+
+function hasInvoiceFlag(item) {
+  return item?.has_invoice === true || item?.has_invoice === "t" || item?.has_invoice === 1;
+}
+
 function Stepper({ step, labels }) {
   return (
     <div className="stepper">
@@ -119,50 +135,52 @@ function SearchCombo({ value, onChange, onPick, options, placeholder, emptyText,
 
   return (
     <div className={`type-combo ${disabled ? "is-off" : ""}`}>
-      <input
-        value={text}
-        placeholder={placeholder}
-        disabled={disabled}
-        autoComplete="off"
-        onFocus={() => setOpen(true)}
-        onChange={(event) => {
-          onChange(event.target.value);
-          setOpen(true);
-        }}
-        onBlur={() => setTimeout(() => {
-          if (showAdd) {
-            saveNew();
-          } else {
-            setOpen(false);
-          }
-        }, 160)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
+      <div className="type-combo-control">
+        <input
+          value={text}
+          placeholder={placeholder}
+          disabled={disabled}
+          autoComplete="off"
+          onFocus={() => setOpen(true)}
+          onChange={(event) => {
+            onChange(event.target.value);
+            setOpen(true);
+          }}
+          onBlur={() => setTimeout(() => {
             if (showAdd) {
               saveNew();
-            } else if (options[0]) {
-              onPick(options[0]);
+            } else {
               setOpen(false);
             }
-          }
-        }}
-      />
-      <button
-        type="button"
-        className="type-caret"
-        tabIndex={-1}
-        disabled={disabled}
-        aria-label={placeholder}
-        onMouseDown={(event) => {
-          event.preventDefault();
-          if (!disabled) {
-            setOpen((current) => !current);
-          }
-        }}
-      >
-        ▾
-      </button>
+          }, 160)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              if (showAdd) {
+                saveNew();
+              } else if (options[0]) {
+                onPick(options[0]);
+                setOpen(false);
+              }
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="type-caret"
+          tabIndex={-1}
+          disabled={disabled}
+          aria-label={placeholder}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            if (!disabled) {
+              setOpen((current) => !current);
+            }
+          }}
+        >
+          ▾
+        </button>
+      </div>
       {open && !disabled ? (
         <div className="type-menu">
           {options.map((item) => (
@@ -227,6 +245,11 @@ function Receipts() {
   const [reload, setReload] = useState(0);
   const [statusBusy, setStatusBusy] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [invoiceReceipt, setInvoiceReceipt] = useState(null);
+  const [invoiceLines, setInvoiceLines] = useState(defaultInvoiceLines);
+  const [invoiceBusy, setInvoiceBusy] = useState(false);
+  const [invoiceMsg, setInvoiceMsg] = useState("");
+  const [printKind, setPrintKind] = useState("receipt");
   const [lists, setLists] = useState({
     customer_name: [],
     company_name: [],
@@ -566,6 +589,7 @@ function Receipts() {
 
   async function openView(item) {
     setError("");
+    setInvoiceReceipt(null);
     setModal(item);
     try {
       const data = await apiGet(`/api/receipts/${item.id}`);
@@ -576,7 +600,113 @@ function Receipts() {
   }
 
   function printDetails() {
-    window.print();
+    setPrintKind("receipt");
+    setTimeout(() => window.print(), 50);
+  }
+
+  function printInvoiceSheet() {
+    setPrintKind("invoice");
+    setTimeout(() => window.print(), 50);
+  }
+
+  async function openInvoice(item) {
+    if (!isDelivered(item)) {
+      setError(t("invoiceNeedDelivered"));
+      return;
+    }
+    setError("");
+    setInvoiceMsg("");
+    setModal(null);
+    setInvoiceBusy(true);
+    setInvoiceReceipt(item);
+    setInvoiceLines(defaultInvoiceLines());
+    try {
+      const data = await apiGet(`/api/receipts/${item.id}/invoice`);
+      setInvoiceReceipt(data.receipt || item);
+      const saved = Array.isArray(data.item?.items) ? data.item.items : [];
+      setInvoiceLines(
+        saved.length
+          ? saved.map((row) => ({
+              name: row.name || "",
+              amount_iqd: row.amount_iqd != null ? String(row.amount_iqd) : "",
+            }))
+          : defaultInvoiceLines()
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setInvoiceBusy(false);
+    }
+  }
+
+  function closeInvoice() {
+    setInvoiceReceipt(null);
+    setInvoiceLines(defaultInvoiceLines());
+    setInvoiceMsg("");
+    setInvoiceBusy(false);
+  }
+
+  function updateInvoiceLine(index, field, value) {
+    setInvoiceLines((rows) => rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
+  }
+
+  function addInvoiceLine() {
+    setInvoiceLines((rows) => rows.concat(emptyInvoiceLine()));
+  }
+
+  function removeInvoiceLine(index) {
+    setInvoiceLines((rows) => (rows.length <= 1 ? defaultInvoiceLines() : rows.filter((_, i) => i !== index)));
+  }
+
+  const invoiceTotal = useMemo(
+    () => invoiceLines.reduce((sum, row) => sum + (Number(row.amount_iqd) || 0), 0),
+    [invoiceLines]
+  );
+
+  async function saveInvoice() {
+    if (!invoiceReceipt) {
+      return;
+    }
+    const items = invoiceLines
+      .map((row) => ({
+        name: String(row.name || "").trim(),
+        amount_iqd: Number(row.amount_iqd),
+      }))
+      .filter((row) => row.name || (Number.isFinite(row.amount_iqd) && row.amount_iqd !== 0));
+
+    if (!items.length || items.some((row) => !row.name || !Number.isFinite(row.amount_iqd) || row.amount_iqd < 0)) {
+      setInvoiceMsg("");
+      setError(t("invoiceNeedLines"));
+      return;
+    }
+
+    setInvoiceBusy(true);
+    setError("");
+    setInvoiceMsg("");
+    try {
+      const data = await apiSend(`/api/receipts/${invoiceReceipt.id}/invoice`, "PUT", { items });
+      setInvoiceReceipt(data.receipt || invoiceReceipt);
+      const saved = Array.isArray(data.item?.items) ? data.item.items : items;
+      setInvoiceLines(
+        saved.map((row) => ({
+          name: row.name || "",
+          amount_iqd: row.amount_iqd != null ? String(row.amount_iqd) : "",
+        }))
+      );
+      setItems((rows) =>
+        rows.map((row) =>
+          row.id === (data.receipt?.id || invoiceReceipt.id)
+            ? { ...row, ...(data.receipt || {}), has_invoice: true }
+            : row
+        )
+      );
+      setInvoiceMsg(t("invoiceSaved"));
+      setReload((count) => count + 1);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setInvoiceBusy(false);
+    }
   }
 
   async function updateStatus(field, value) {
@@ -670,7 +800,7 @@ function Receipts() {
           </div>
         </div>
 
-        {error && modal !== "add" ? <p className="page-error">{error}</p> : null}
+        {error && modal !== "add" && !invoiceReceipt ? <p className="page-error">{error}</p> : null}
 
         <div className="table-wrap">
           <table>
@@ -684,6 +814,7 @@ function Receipts() {
                 <th>{t("amountIqd")}</th>
                 <th>{t("deliveryStatus")}</th>
                 <th>{t("payment")}</th>
+                <th>{t("invoice")}</th>
                 <th>{t("action")}</th>
               </tr>
             </thead>
@@ -707,6 +838,31 @@ function Receipts() {
                   <td>
                     <span className={statusClass(item.payment_status)}>{label(item.payment_status)}</span>
                   </td>
+                  <td className="invoice-cell" onClick={(event) => event.stopPropagation()}>
+                    {hasInvoiceFlag(item) ? (
+                      <button
+                        type="button"
+                        className="invoice-badge is-yes"
+                        onClick={() => openInvoice(item)}
+                        title={t("openInvoice")}
+                      >
+                        {t("invoiceYes")}
+                      </button>
+                    ) : isDelivered(item) ? (
+                      <button
+                        type="button"
+                        className="invoice-badge is-create"
+                        onClick={() => openInvoice(item)}
+                        title={t("createInvoice")}
+                      >
+                        {t("invoiceNo")}
+                      </button>
+                    ) : (
+                      <span className="invoice-badge is-off" title={t("invoiceUnavailable")}>
+                        {t("invoiceNo")}
+                      </span>
+                    )}
+                  </td>
                   <td className="row-actions" onClick={(event) => event.stopPropagation()}>
                     <button type="button" className="row-btn view" onClick={() => openView(item)} aria-label={t("view")}>
                       <svg viewBox="0 0 24 24">
@@ -729,7 +885,7 @@ function Receipts() {
               ))}
               {!loading && items.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="empty">{t("noReceipts")}</td>
+                  <td colSpan="10" className="empty">{t("noReceipts")}</td>
                 </tr>
               ) : null}
             </tbody>
@@ -1092,6 +1248,11 @@ function Receipts() {
             </section>
 
             <div className="wizard-actions">
+              {isDelivered(view) ? (
+                <button type="button" className="ghost-btn" onClick={() => openInvoice(view)}>
+                  {hasInvoiceFlag(view) ? t("openInvoice") : t("createInvoice")}
+                </button>
+              ) : null}
               <button type="button" className="ghost-btn" onClick={printDetails}>{t("printDetails")}</button>
               <button type="button" className="ghost-btn" onClick={() => setModal(null)}>{t("close")}</button>
               <button type="button" className="next-btn" onClick={() => openEdit(view)}>
@@ -1103,12 +1264,123 @@ function Receipts() {
         </div>
       ) : null}
 
-      {printItem ? (
+      {invoiceReceipt ? (
+        <div className="modal-back" onClick={closeInvoice}>
+          <div className="modal receipt-details invoice-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="details-head">
+              <div>
+                <h2>{t("invoiceTitle")}</h2>
+                <p>{t("invoiceCopy")}</p>
+              </div>
+              <button type="button" className="icon-close" onClick={closeInvoice}>×</button>
+            </div>
+
+            {error ? <p className="page-error">{error}</p> : null}
+            {invoiceMsg ? <p className="page-ok">{invoiceMsg}</p> : null}
+
+            <section className="panel">
+              <h3>{t("invoiceReceiptInfo")}</h3>
+              <div className="summary invoice-summary">
+                <div>
+                  <h4>{t("senderInfo")}</h4>
+                  <p><span>{t("receiptNo")}</span><b>SSK-{invoiceReceipt.id}</b></p>
+                  <p><span>{t("date")}</span><b>{formatDate(invoiceReceipt.receipt_date)}</b></p>
+                  <p><span>{t("customerName")}</span><b>{invoiceReceipt.customer_name || invoiceReceipt.customer || "-"}</b></p>
+                  <p><span>{t("companyName")}</span><b>{invoiceReceipt.company_name || "-"}</b></p>
+                  <p><span>{t("phoneNumber")}</span><b>{invoiceReceipt.phone || "-"}</b></p>
+                </div>
+                <div>
+                  <h4>{t("receiverInfo")}</h4>
+                  <p><span>{t("receivingLocation")}</span><b>{invoiceReceipt.receiving_location || "-"}</b></p>
+                  <p><span>{t("deliveryLocation")}</span><b>{invoiceReceipt.delivery_location || invoiceReceipt.destination || "-"}</b></p>
+                  <p><span>{t("driverName")}</span><b>{invoiceReceipt.driver_name || "-"}</b></p>
+                  <p><span>{t("vehicleTypeCat")}</span><b>{label(invoiceReceipt.car_type) || invoiceReceipt.vehicle || "-"}</b></p>
+                  <p><span>{t("carVehicle")}</span><b>{invoiceReceipt.vehicle || "-"}</b></p>
+                </div>
+                <div>
+                  <h4>{t("cargoInfo")}</h4>
+                  <p><span>{t("typeOfPieces")}</span><b>{label(invoiceReceipt.goods_type) || "-"}</b></p>
+                  <p><span>{t("numberOfPieces")}</span><b>{invoiceReceipt.pieces || "-"}</b></p>
+                  <p><span>{t("weightKg")}</span><b>{invoiceReceipt.weight || "-"}</b></p>
+                  <p><span>{t("deliveryStatus")}</span><b>{label(invoiceReceipt.delivery_status)}</b></p>
+                  <p><span>{t("payment")}</span><b>{label(invoiceReceipt.payment_status)}</b></p>
+                </div>
+              </div>
+            </section>
+
+            <section className="panel">
+              <h3>{t("invoiceCosts")}</h3>
+              <p className="invoice-hint">{t("invoiceEmptyHint")}</p>
+              <div className="invoice-lines">
+                <div className="invoice-line-head">
+                  <span>{t("invoiceLineName")}</span>
+                  <span>{t("invoiceLineAmount")}</span>
+                  <span />
+                </div>
+                {invoiceLines.map((row, index) => (
+                  <div className="invoice-line" key={`line-${index}`}>
+                    <input
+                      value={row.name}
+                      onChange={(event) => updateInvoiceLine(index, "name", event.target.value)}
+                      placeholder={t("invoiceLineName")}
+                      disabled={invoiceBusy}
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      value={row.amount_iqd}
+                      onChange={(event) => updateInvoiceLine(index, "amount_iqd", event.target.value)}
+                      placeholder="0"
+                      disabled={invoiceBusy}
+                    />
+                    <button
+                      type="button"
+                      className="row-btn del"
+                      onClick={() => removeInvoiceLine(index)}
+                      disabled={invoiceBusy}
+                      aria-label={t("removeInvoiceLine")}
+                    >
+                      <svg viewBox="0 0 24 24">
+                        <path d="M5 7h14 M9 7V5h6v2 M8 7l1 13h6l1-13" fill="none" stroke="currentColor" strokeWidth="1.7" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="invoice-line-actions">
+                <button type="button" className="ghost-btn" onClick={addInvoiceLine} disabled={invoiceBusy}>
+                  {t("addInvoiceLine")}
+                </button>
+                <div className="invoice-total">
+                  <span>{t("totalAmount")}</span>
+                  <b>{money(invoiceTotal)}</b>
+                </div>
+              </div>
+            </section>
+
+            <div className="wizard-actions">
+              <button type="button" className="ghost-btn" onClick={printInvoiceSheet} disabled={invoiceBusy}>
+                {t("printInvoice")}
+              </button>
+              <button type="button" className="ghost-btn" onClick={closeInvoice}>{t("close")}</button>
+              <button type="button" className="next-btn" onClick={saveInvoice} disabled={invoiceBusy}>
+                {t("saveInvoice")}
+                <span>{arrow}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {printKind === "receipt" && printItem ? (
         <section className="print-sheet">
           <header className="print-head">
-            <div>
-              <strong>{companyPrefs().company}</strong>
-              <span>{companyPrefs().tagline}</span>
+            <div className="print-brand">
+              <img className="print-logo" src="/ssk-logo.png" alt="SSK" />
+              <div>
+                <strong>{companyPrefs().company}</strong>
+                <span>{companyPrefs().tagline}</span>
+              </div>
             </div>
             <h1>{t("receiptDetails")}</h1>
             <p>{t("record", { id: printItem.id || "-" })}</p>
@@ -1137,6 +1409,57 @@ function Receipts() {
               <p><span>{t("payment")}</span><b>{label(printItem.payment_status)}</b></p>
             </article>
           </div>
+          <footer>{t("printed", { value: new Date().toLocaleString("en-GB") })}</footer>
+        </section>
+      ) : null}
+
+      {printKind === "invoice" && invoiceReceipt ? (
+        <section className="print-sheet invoice-print">
+          <header className="print-head">
+            <div className="print-brand">
+              <img className="print-logo" src="/ssk-logo.png" alt="SSK" />
+              <div>
+                <strong>{companyPrefs().company}</strong>
+                <span>{companyPrefs().tagline}</span>
+              </div>
+            </div>
+            <h1>{t("invoiceTitle")}</h1>
+            <p>{t("receiptNo")} SSK-{invoiceReceipt.id}</p>
+          </header>
+          <div className="print-grid">
+            <article>
+              <h2>{t("senderInfo")}</h2>
+              <p><span>{t("date")}</span><b>{formatDate(invoiceReceipt.receipt_date)}</b></p>
+              <p><span>{t("customerName")}</span><b>{invoiceReceipt.customer_name || invoiceReceipt.customer || "-"}</b></p>
+              <p><span>{t("companyName")}</span><b>{invoiceReceipt.company_name || "-"}</b></p>
+              <p><span>{t("phoneNumber")}</span><b>{invoiceReceipt.phone || "-"}</b></p>
+              <p><span>{t("receivingLocation")}</span><b>{invoiceReceipt.receiving_location || "-"}</b></p>
+            </article>
+            <article>
+              <h2>{t("receiverInfo")}</h2>
+              <p><span>{t("deliveryLocation")}</span><b>{invoiceReceipt.delivery_location || invoiceReceipt.destination || "-"}</b></p>
+              <p><span>{t("driverName")}</span><b>{invoiceReceipt.driver_name || "-"}</b></p>
+              <p><span>{t("vehicleTypeCat")}</span><b>{label(invoiceReceipt.car_type) || invoiceReceipt.vehicle || "-"}</b></p>
+              <p><span>{t("typeOfPieces")}</span><b>{label(invoiceReceipt.goods_type) || "-"}</b></p>
+              <p><span>{t("numberOfPieces")}</span><b>{invoiceReceipt.pieces || "-"}</b></p>
+              <p><span>{t("weightKg")}</span><b>{invoiceReceipt.weight || "-"}</b></p>
+            </article>
+          </div>
+          <article className="print-costs">
+            <h2>{t("invoiceCosts")}</h2>
+            {invoiceLines
+              .filter((row) => String(row.name || "").trim())
+              .map((row, index) => (
+                <p key={`print-cost-${index}`}>
+                  <span>{row.name}</span>
+                  <b>{money(row.amount_iqd)}</b>
+                </p>
+              ))}
+            <p className="print-total">
+              <span>{t("totalAmount")}</span>
+              <b>{money(invoiceTotal)}</b>
+            </p>
+          </article>
           <footer>{t("printed", { value: new Date().toLocaleString("en-GB") })}</footer>
         </section>
       ) : null}
