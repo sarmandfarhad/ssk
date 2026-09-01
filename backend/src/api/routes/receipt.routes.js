@@ -8,6 +8,7 @@ const {
   remove,
   listOptions,
   addOption,
+  listContacts,
   getInvoice,
   upsertInvoice,
   removeInvoice,
@@ -17,6 +18,7 @@ const router = express.Router();
 
 router.get("/", requireAuth, list);
 router.get("/options", requireAuth, listOptions);
+router.get("/contacts", requireAuth, listContacts);
 router.post("/options", requireAuth, addOption);
 router.post("/", requireAuth, create);
 router.get("/:id/invoice", requireAuth, getInvoice);

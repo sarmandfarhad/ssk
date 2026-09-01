@@ -93,9 +93,24 @@ function fullMoney(value) {
   return `IQD ${Number(value || 0).toLocaleString()}`;
 }
 
+function isoDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function defaultFromDate() {
+  const date = new Date();
+  date.setMonth(date.getMonth() - 2);
+  date.setDate(date.getDate() - 25);
+  return isoDate(date);
+}
+
 function Dashboard({ onPage }) {
   const { t, label } = useI18n();
-  const [range, setRange] = useState("monthly");
+  const [from, setFrom] = useState(defaultFromDate);
+  const [to, setTo] = useState(() => isoDate(new Date()));
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -105,10 +120,18 @@ function Dashboard({ onPage }) {
   const [financeError, setFinanceError] = useState("");
   const [financeLoading, setFinanceLoading] = useState(false);
 
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const text = params.toString();
+    return text ? `?${text}` : "";
+  }, [from, to]);
+
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    apiGet(`/api/dashboard?range=${range}`)
+    apiGet(`/api/dashboard${queryString}`)
       .then((payload) => {
         if (alive) {
           setData(payload);
@@ -127,15 +150,15 @@ function Dashboard({ onPage }) {
     return () => {
       alive = false;
     };
-  }, [range, t]);
+  }, [queryString, t]);
 
-  async function openFinance() {
+  async function openFinance(tab = "overview") {
     setFinanceOpen(true);
-    setFinanceTab("overview");
+    setFinanceTab(tab || "overview");
     setFinanceLoading(true);
     setFinanceError("");
     try {
-      const payload = await apiGet("/api/dashboard/finance");
+      const payload = await apiGet(`/api/dashboard/finance${queryString}`);
       setFinance(payload);
     } catch (err) {
       setFinance(null);
@@ -143,6 +166,14 @@ function Dashboard({ onPage }) {
     } finally {
       setFinanceLoading(false);
     }
+  }
+
+  function setPreset(days) {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - (days - 1));
+    setFrom(isoDate(start));
+    setTo(isoDate(end));
   }
 
   const kpis = data?.kpis || {};
@@ -175,13 +206,29 @@ function Dashboard({ onPage }) {
   return (
     <section className="dash-wrap">
       <div className="dash-toolbar">
-        <div className="dash-range">
-          <button type="button" className={range === "weekly" ? "is-on" : ""} onClick={() => setRange("weekly")}>
-            {t("dashWeekly")}
-          </button>
-          <button type="button" className={range === "monthly" ? "is-on" : ""} onClick={() => setRange("monthly")}>
-            {t("dashMonthly")}
-          </button>
+        <div className="dash-dates">
+          <label>
+            <span>{t("dashFrom")}</span>
+            <input type="date" value={from} max={to || undefined} onChange={(event) => setFrom(event.target.value)} />
+          </label>
+          <label>
+            <span>{t("dashTo")}</span>
+            <input type="date" value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} />
+          </label>
+          <div className="dash-range">
+            <button type="button" onClick={() => setPreset(7)}>{t("dashDays7")}</button>
+            <button type="button" onClick={() => setPreset(30)}>{t("dashDays30")}</button>
+            <button type="button" onClick={() => setPreset(85)}>{t("dashDays85")}</button>
+            <button
+              type="button"
+              onClick={() => {
+                setFrom("");
+                setTo("");
+              }}
+            >
+              {t("dashAllTimeRange")}
+            </button>
+          </div>
         </div>
         <div className="dash-tools">
           <button type="button" className="ghost-btn" onClick={() => window.print()}>
@@ -195,6 +242,32 @@ function Dashboard({ onPage }) {
 
       {error ? <p className="page-error">{error}</p> : null}
       {loading && !data ? <p className="dash-loading">{t("loading")}</p> : null}
+
+      <div className="dash-kpis dash-kpis-money">
+        <button type="button" className="kpi kpi-blue is-click" onClick={() => openFinance()}>
+          <span>{t("dashTransactions")}</span>
+          <strong>{money(kpis.transactions)}</strong>
+          <small>{t("dashTransactionsHint")}</small>
+        </button>
+        <button type="button" className="kpi kpi-amber is-click" onClick={() => openFinance("invoices")}>
+          <span>{t("dashInvoiceCosts")}</span>
+          <strong>− {money(kpis.invoiceTotal)}</strong>
+          <small>
+            {kpis.invoiceCount || 0} {t("dashInvoicesCount")}
+            {(kpis.missingInvoice || 0) > 0 ? ` · ${kpis.missingInvoice} ${t("dashNoInvoiceYet")}` : ""}
+          </small>
+        </button>
+        <button type="button" className="kpi kpi-mint is-click" onClick={() => openFinance()}>
+          <span>{t("dashNetAfterInvoice")}</span>
+          <strong>{money(kpis.netAfterInvoice)}</strong>
+          <small>{t("dashNetAfterInvoiceHint")}</small>
+        </button>
+        <button type="button" className="kpi kpi-lilac is-click" onClick={() => openFinance()}>
+          <span>{t("dashNetGet")}</span>
+          <strong>{money(kpis.netGet)}</strong>
+          <small>{t("dashNetGetHint")}</small>
+        </button>
+      </div>
 
       <div className="dash-kpis">
         <article className="kpi kpi-blue">
@@ -214,18 +287,18 @@ function Dashboard({ onPage }) {
           <strong>{kpis.deliveryRate ?? 0}%</strong>
           <small>{t("dashDeliveredShare")}</small>
         </article>
-        <button type="button" className="kpi kpi-amber is-click" onClick={openFinance}>
-          <span>{t("dashRevenue")}</span>
-          <strong>{money(kpis.revenue)}</strong>
-          <small>{t("dashRevenueClickHint")}</small>
-        </button>
+        <article className="kpi kpi-amber">
+          <span>{t("dashMissingInvoice")}</span>
+          <strong>{kpis.missingInvoice ?? 0}</strong>
+          <small>{money(kpis.missingInvoiceAmount)} · {t("dashMissingInvoiceHint")}</small>
+        </article>
       </div>
 
       <div className="dash-grid-2">
         <article className="dash-card">
           <header>
             <h3>{t("dashShipmentAnalytics")}</h3>
-            <span>{range === "weekly" ? t("dashWeekly") : t("dashMonthly")}</span>
+            <span>{from && to ? `${from} → ${to}` : t("dashAllTimeRange")}</span>
           </header>
           {(data?.shipmentAnalytics || []).length ? (
             <BarChart items={data.shipmentAnalytics} />
@@ -237,13 +310,13 @@ function Dashboard({ onPage }) {
         <article className="dash-card">
           <header>
             <h3>
-              <button type="button" className="link-btn dash-title-btn" onClick={openFinance}>
+              <button type="button" className="link-btn dash-title-btn" onClick={() => openFinance()}>
                 {t("dashRevenueExpenses")}
               </button>
             </h3>
             <div className="dash-legend">
-              <i className="is-rev" /> {t("dashRevenue")}
-              <i className="is-exp" /> {t("dashExpenses")}
+              <i className="is-rev" /> {t("dashTransactions")}
+              <i className="is-exp" /> {t("dashInvoiceAndExpenses")}
             </div>
           </header>
           {(data?.revenueExpenses || []).length ? (
@@ -252,8 +325,10 @@ function Dashboard({ onPage }) {
             <p className="dash-empty">{t("dashNoChartData")}</p>
           )}
           <div className="dash-money-foot">
-            <span>{t("dashRevenue")}: <b>{money(kpis.revenue)}</b></span>
-            <span>{t("dashExpenses")}: <b>{money(kpis.expenses)}</b></span>
+            <span>{t("dashTransactions")}: <b>{money(kpis.transactions)}</b></span>
+            <span>{t("dashInvoiceCosts")}: <b>− {money(kpis.invoiceTotal)}</b></span>
+            <span>{t("dashExpenses")}: <b>− {money(kpis.expenses)}</b></span>
+            <span>{t("dashNetGet")}: <b>{money(kpis.netGet)}</b></span>
           </div>
         </article>
       </div>
@@ -274,6 +349,7 @@ function Dashboard({ onPage }) {
                   <th>{t("customerName")}</th>
                   <th>{t("deliveryLocation")}</th>
                   <th>{t("status")}</th>
+                  <th>{t("invoice")}</th>
                   <th>{t("amountIqd")}</th>
                 </tr>
               </thead>
@@ -291,12 +367,17 @@ function Dashboard({ onPage }) {
                         {label(item.deliveryStatus)}
                       </span>
                     </td>
+                    <td>
+                      <span className={`dash-pill ${item.hasInvoice ? "is-ok" : "is-warn"}`}>
+                        {item.hasInvoice ? t("invoiceYes") : t("invoiceNo")}
+                      </span>
+                    </td>
                     <td>{Number(item.amount || 0).toLocaleString()}</td>
                   </tr>
                 ))}
                 {!data?.recentShipments?.length ? (
                   <tr>
-                    <td colSpan={5} className="dash-empty">{t("dashNoShipments")}</td>
+                    <td colSpan={6} className="dash-empty">{t("dashNoShipments")}</td>
                   </tr>
                 ) : null}
               </tbody>
@@ -355,6 +436,49 @@ function Dashboard({ onPage }) {
           </article>
         </div>
       </div>
+
+      <article className="dash-card">
+        <header>
+          <h3>{t("dashRecentInvoices")}</h3>
+          <button type="button" className="link-btn" onClick={() => openFinance("invoices")}>
+            {t("dashViewAll")}
+          </button>
+        </header>
+        <div className="dash-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>{t("dashShipmentId")}</th>
+                <th>{t("customerName")}</th>
+                <th>{t("dashTxnAmount")}</th>
+                <th>{t("dashInvoiceCosts")}</th>
+                <th>{t("dashNetAfterInvoice")}</th>
+                <th>{t("date")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(data?.recentInvoices || []).map((item) => (
+                <tr key={item.id}>
+                  <td>SSK-{item.receiptId}</td>
+                  <td>
+                    <b>{item.customer}</b>
+                    {item.company ? <small>{item.company}</small> : null}
+                  </td>
+                  <td>{Number(item.receiptAmount || 0).toLocaleString()}</td>
+                  <td>− {Number(item.invoiceAmount || 0).toLocaleString()}</td>
+                  <td><b>{Number(item.net || 0).toLocaleString()}</b></td>
+                  <td>{formatDate(item.date)}</td>
+                </tr>
+              ))}
+              {!data?.recentInvoices?.length ? (
+                <tr>
+                  <td colSpan={6} className="dash-empty">{t("dashNoInvoices")}</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </article>
 
       <div className="dash-grid-2">
         <article className="dash-card">
@@ -456,6 +580,7 @@ function Dashboard({ onPage }) {
             <div className="dash-finance-tabs">
               {[
                 ["overview", t("dashFinanceOverview")],
+                ["invoices", t("dashFinanceInvoicesTab")],
                 ["transports", t("dashFinanceTransports")],
                 ["expenses", t("dashFinanceExpenses")],
                 ["payments", t("dashFinancePayments")],
@@ -480,31 +605,34 @@ function Dashboard({ onPage }) {
                   <div className="dash-finance-body">
                     <div className="dash-finance-kpis">
                       <article>
-                        <span>{t("dashFinanceTransportIncome")}</span>
+                        <span>{t("dashTransactions")}</span>
                         <strong>{fullMoney(financeSummary.transportRevenue)}</strong>
                         <small>{financeSummary.transportCount || 0} {t("dashFinanceRecords")}</small>
                       </article>
                       <article>
-                        <span>{t("dashFinancePaid")}</span>
-                        <strong>{fullMoney(financeSummary.paidTransport)}</strong>
+                        <span>{t("dashInvoiceCosts")}</span>
+                        <strong>− {fullMoney(financeSummary.invoiceTotal)}</strong>
+                        <small>{financeSummary.invoiceCount || 0} {t("dashInvoicesCount")}</small>
                       </article>
-                      <article>
-                        <span>{t("dashFinanceUnpaid")}</span>
-                        <strong>{fullMoney(financeSummary.unpaidTransport)}</strong>
-                      </article>
-                      <article>
-                        <span>{t("dashFinanceInvoices")}</span>
-                        <strong>{fullMoney(financeSummary.invoiceTotal)}</strong>
+                      <article className={(financeSummary.netAfterInvoice || 0) >= 0 ? "is-net-ok" : "is-net-bad"}>
+                        <span>{t("dashNetAfterInvoice")}</span>
+                        <strong>{fullMoney(financeSummary.netAfterInvoice)}</strong>
+                        <small>{t("dashNetAfterInvoiceHint")}</small>
                       </article>
                       <article>
                         <span>{t("dashFinanceExpenseClaims")}</span>
-                        <strong>{fullMoney(financeSummary.expenseTotal)}</strong>
+                        <strong>− {fullMoney(financeSummary.expenseTotal)}</strong>
                         <small>{financeSummary.expenseCount || 0} {t("dashFinanceRecords")}</small>
                       </article>
                       <article className={(financeSummary.net || 0) >= 0 ? "is-net-ok" : "is-net-bad"}>
-                        <span>{t("dashFinanceNet")}</span>
+                        <span>{t("dashNetGet")}</span>
                         <strong>{fullMoney(financeSummary.net)}</strong>
-                        <small>{t("dashFinanceNetHint")}</small>
+                        <small>{t("dashNetGetHint")}</small>
+                      </article>
+                      <article>
+                        <span>{t("dashMissingInvoice")}</span>
+                        <strong>{financeSummary.missingInvoice || 0}</strong>
+                        <small>{fullMoney(financeSummary.missingInvoiceAmount)} · {t("dashMissingInvoiceHint")}</small>
                       </article>
                     </div>
 
@@ -543,6 +671,65 @@ function Dashboard({ onPage }) {
                   </div>
                 ) : null}
 
+                {financeTab === "invoices" ? (
+                  <div className="dash-finance-body">
+                    <div className="dash-finance-kpis">
+                      <article>
+                        <span>{t("dashInvoiceCosts")}</span>
+                        <strong>{fullMoney(financeSummary.invoiceTotal)}</strong>
+                      </article>
+                      <article>
+                        <span>{t("dashInvoicesCount")}</span>
+                        <strong>{financeSummary.invoiceCount || 0}</strong>
+                      </article>
+                      <article>
+                        <span>{t("dashMissingInvoice")}</span>
+                        <strong>{financeSummary.missingInvoice || 0}</strong>
+                        <small>{fullMoney(financeSummary.missingInvoiceAmount)}</small>
+                      </article>
+                    </div>
+                    <div className="dash-table-wrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>{t("dashShipmentId")}</th>
+                            <th>{t("customerName")}</th>
+                            <th>{t("driverName")}</th>
+                            <th>{t("dashTxnAmount")}</th>
+                            <th>{t("dashInvoiceCosts")}</th>
+                            <th>{t("dashNetAfterInvoice")}</th>
+                            <th>{t("date")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(finance.invoices || []).map((item) => (
+                            <tr key={item.id}>
+                              <td>SSK-{item.receiptId}</td>
+                              <td>
+                                <b>{item.customer}</b>
+                                {item.company ? <small>{item.company}</small> : null}
+                              </td>
+                              <td>{item.driver}</td>
+                              <td>{Number(item.receiptAmount || 0).toLocaleString()}</td>
+                              <td>− {Number(item.invoiceAmount || 0).toLocaleString()}</td>
+                              <td><b>{Number(item.net || 0).toLocaleString()}</b></td>
+                              <td>{formatDate(item.date)}</td>
+                            </tr>
+                          ))}
+                          {!finance.invoices?.length ? (
+                            <tr><td colSpan={7} className="dash-empty">{t("dashNoInvoices")}</td></tr>
+                          ) : null}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="dash-finance-foot">
+                      <button type="button" className="link-btn" onClick={() => { setFinanceOpen(false); onPage?.("receipts"); }}>
+                        {t("dashViewAll")} → {t("navReceipts")}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
                 {financeTab === "transports" ? (
                   <div className="dash-finance-body">
                     <div className="dash-table-wrap">
@@ -556,7 +743,9 @@ function Dashboard({ onPage }) {
                             <th>{t("deliveryStatus")}</th>
                             <th>{t("payment")}</th>
                             <th>{t("dashFinanceInvoice")}</th>
-                            <th>{t("amountIqd")}</th>
+                            <th>{t("dashTxnAmount")}</th>
+                            <th>{t("dashInvoiceCosts")}</th>
+                            <th>{t("dashNetAfterInvoice")}</th>
                             <th>{t("date")}</th>
                           </tr>
                         </thead>
@@ -573,12 +762,14 @@ function Dashboard({ onPage }) {
                               <td><span className={`dash-pill ${statusClass(item.deliveryStatus)}`}>{label(item.deliveryStatus)}</span></td>
                               <td><span className={`dash-pill ${statusClass(item.paymentStatus)}`}>{label(item.paymentStatus)}</span></td>
                               <td>{item.hasInvoice ? t("invoiceYes") : t("invoiceNo")}</td>
-                              <td>{Number(item.amount || 0).toLocaleString()}</td>
+                              <td>{Number(item.receiptAmount || 0).toLocaleString()}</td>
+                              <td>{item.hasInvoice ? `− ${Number(item.invoiceAmount || 0).toLocaleString()}` : "—"}</td>
+                              <td><b>{Number(item.net || 0).toLocaleString()}</b></td>
                               <td>{formatDate(item.date)}</td>
                             </tr>
                           ))}
                           {!finance.transports?.length ? (
-                            <tr><td colSpan={9} className="dash-empty">{t("dashNoShipments")}</td></tr>
+                            <tr><td colSpan={11} className="dash-empty">{t("dashNoShipments")}</td></tr>
                           ) : null}
                         </tbody>
                       </table>

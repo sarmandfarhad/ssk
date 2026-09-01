@@ -21,7 +21,7 @@ const emptyForm = {
   status: "Active",
 };
 
-const years = Array.from({ length: 16 }, (_, index) => String(2026 - index));
+const yearSuggestions = Array.from({ length: 40 }, (_, index) => String(new Date().getFullYear() + 1 - index));
 
 function formatDate(value) {
   if (!value) {
@@ -668,10 +668,19 @@ function Drivers() {
                       <input value={form.annual_card_number} onChange={(event) => updateField("annual_card_number", event.target.value)} placeholder="1234567" />
                     </label>
                     <label>{t("modelYear")} <b>*</b>
-                      <select value={form.model_year} onChange={(event) => updateField("model_year", event.target.value)}>
-                        <option value="">2020</option>
-                        {years.map((year) => <option key={year}>{year}</option>)}
-                      </select>
+                      <input
+                        value={form.model_year}
+                        onChange={(event) => updateField("model_year", event.target.value)}
+                        placeholder={t("modelYearHint")}
+                        inputMode="numeric"
+                        list="model-year-suggestions"
+                        autoComplete="off"
+                      />
+                      <datalist id="model-year-suggestions">
+                        {yearSuggestions.map((year) => (
+                          <option key={year} value={year} />
+                        ))}
+                      </datalist>
                     </label>
                     <label>{t("color")}
                       <input value={form.color} onChange={(event) => updateField("color", event.target.value)} placeholder={t("color")} />

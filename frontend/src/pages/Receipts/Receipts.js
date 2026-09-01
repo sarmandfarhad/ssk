@@ -256,6 +256,7 @@ function Receipts() {
     receiving_location: [],
     delivery_location: [],
   });
+  const [contacts, setContacts] = useState([]);
   const limit = 13;
   const pageCount = Math.max(1, Math.ceil(total / limit));
   const arrow = dir === "rtl" ? "←" : "→";
@@ -296,8 +297,9 @@ function Receipts() {
     Promise.all([
       apiGet("/api/drivers?limit=300"),
       apiGet("/api/receipts/options"),
+      apiGet("/api/receipts/contacts"),
     ])
-      .then(([driverData, optionData]) => {
+      .then(([driverData, optionData, contactData]) => {
         if (cancelled) {
           return;
         }
@@ -308,10 +310,12 @@ function Receipts() {
           receiving_location: optionData.items?.receiving_location || [],
           delivery_location: optionData.items?.delivery_location || [],
         });
+        setContacts(contactData.items || []);
       })
       .catch(() => {
         if (!cancelled) {
           setDrivers([]);
+          setContacts([]);
         }
       });
     return () => {
@@ -391,12 +395,158 @@ function Receipts() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
+  function sameText(a, b) {
+    return String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+  }
+
+  function contactsFor(customerName, companyName) {
+    const customer = String(customerName || "").trim().toLowerCase();
+    const company = String(companyName || "").trim().toLowerCase();
+    return contacts.filter((item) => {
+      const itemCustomer = String(item.customer_name || "").trim().toLowerCase();
+      const itemCompany = String(item.company_name || "").trim().toLowerCase();
+      const customerOk = !customer || itemCustomer === customer || itemCustomer.includes(customer);
+      const companyOk = !company || itemCompany === company || itemCompany.includes(company);
+      return customerOk && companyOk;
+    });
+  }
+
+  function uniqueValues(rows, key) {
+    const values = [];
+    rows.forEach((row) => {
+      const value = String(row[key] || "").trim();
+      if (value && !values.some((item) => sameText(item, value))) {
+        values.push(value);
+      }
+    });
+    return values;
+  }
+
+  function applyContactFill(next) {
+    const matched = contactsFor(next.customer_name, next.company_name);
+    const exact = matched.filter((item) => {
+      const customerOk = !String(next.customer_name || "").trim()
+        || sameText(item.customer_name, next.customer_name);
+      const companyOk = !String(next.company_name || "").trim()
+        || sameText(item.company_name, next.company_name);
+      return customerOk && companyOk;
+    });
+    const pool = exact.length ? exact : matched;
+    const phones = uniqueValues(pool, "phone");
+    const companies = uniqueValues(pool, "company_name");
+    const customers = uniqueValues(pool, "customer_name");
+
+    if (!String(next.phone || "").trim() && phones.length === 1) {
+      next.phone = phones[0];
+    }
+    if (!String(next.company_name || "").trim() && companies.length === 1) {
+      next.company_name = companies[0];
+    }
+    if (!String(next.customer_name || "").trim() && customers.length === 1) {
+      next.customer_name = customers[0];
+    }
+    return next;
+  }
+
+  function updateCustomerField(name, value) {
+    setForm((current) => applyContactFill({ ...current, [name]: value }));
+  }
+
+  function pickCustomerContact(option) {
+    setForm((current) => applyContactFill({
+      ...current,
+      customer_name: option.value || option.customer_name || current.customer_name,
+      company_name: option.company_name || current.company_name,
+      phone: option.phone || current.phone,
+    }));
+  }
+
+  function pickCompanyContact(option) {
+    setForm((current) => applyContactFill({
+      ...current,
+      company_name: option.value || option.company_name || current.company_name,
+      customer_name: option.customer_name || current.customer_name,
+      phone: option.phone || current.phone,
+    }));
+  }
+
   function filterSaved(kind, text) {
     const queryText = String(text || "").trim().toLowerCase();
     return (lists[kind] || [])
       .filter((name) => !queryText || name.toLowerCase().includes(queryText))
       .map((name) => ({ id: `${kind}-${name}`, label: name, value: name }));
   }
+
+  const customerOptions = useMemo(() => {
+    const queryText = String(form.customer_name || "").trim().toLowerCase();
+    const fromContacts = [];
+    contacts.forEach((item) => {
+      const name = String(item.customer_name || "").trim();
+      if (!name) return;
+      if (queryText && !name.toLowerCase().includes(queryText)) return;
+      const key = `${name}|${item.company_name}|${item.phone}`;
+      if (fromContacts.some((row) => row.id === key)) return;
+      fromContacts.push({
+        id: key,
+        label: name,
+        value: name,
+        company_name: item.company_name,
+        phone: item.phone,
+        sub: [item.company_name, item.phone].filter(Boolean).join(" · "),
+      });
+    });
+    const known = filterSaved("customer_name", form.customer_name).filter(
+      (option) => !fromContacts.some((item) => sameText(item.value, option.value))
+    );
+    return fromContacts.concat(known);
+  }, [contacts, form.customer_name, lists.customer_name]);
+
+  const companyOptions = useMemo(() => {
+    const queryText = String(form.company_name || "").trim().toLowerCase();
+    const fromContacts = [];
+    contacts.forEach((item) => {
+      const name = String(item.company_name || "").trim();
+      if (!name) return;
+      if (queryText && !name.toLowerCase().includes(queryText)) return;
+      const customerFilter = String(form.customer_name || "").trim();
+      if (customerFilter && !sameText(item.customer_name, customerFilter)
+        && !String(item.customer_name || "").toLowerCase().includes(customerFilter.toLowerCase())) {
+        return;
+      }
+      const key = `${name}|${item.customer_name}|${item.phone}`;
+      if (fromContacts.some((row) => row.id === key)) return;
+      fromContacts.push({
+        id: key,
+        label: name,
+        value: name,
+        customer_name: item.customer_name,
+        phone: item.phone,
+        sub: [item.customer_name, item.phone].filter(Boolean).join(" · "),
+      });
+    });
+    const known = filterSaved("company_name", form.company_name).filter(
+      (option) => !fromContacts.some((item) => sameText(item.value, option.value))
+    );
+    return fromContacts.concat(known);
+  }, [contacts, form.company_name, form.customer_name, lists.company_name]);
+
+  const phoneOptions = useMemo(() => {
+    const queryText = String(form.phone || "").trim().toLowerCase();
+    const matched = contactsFor(form.customer_name, form.company_name);
+    const phones = uniqueValues(matched.length ? matched : contacts, "phone");
+    return phones
+      .filter((phone) => !queryText || phone.toLowerCase().includes(queryText))
+      .map((phone) => {
+        const hit = matched.find((item) => sameText(item.phone, phone))
+          || contacts.find((item) => sameText(item.phone, phone));
+        return {
+          id: `phone-${phone}`,
+          label: phone,
+          value: phone,
+          sub: hit ? [hit.customer_name, hit.company_name].filter(Boolean).join(" · ") : "",
+        };
+      });
+  }, [contacts, form.phone, form.customer_name, form.company_name]);
 
   async function saveSaved(kind, name) {
     const value = String(name || "").trim();
@@ -582,6 +732,12 @@ function Receipts() {
         setPage(1);
       }
       setReload((value) => value + 1);
+      try {
+        const contactData = await apiGet("/api/receipts/contacts");
+        setContacts(contactData.items || []);
+      } catch (contactError) {
+        // keep previous contacts if refresh fails
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -944,9 +1100,9 @@ function Receipts() {
                     <label>{t("customerName")} <b>*</b>
                       <SearchCombo
                         value={form.customer_name}
-                        onChange={(value) => update("customer_name", value)}
-                        onPick={(option) => update("customer_name", option.value)}
-                        options={filterSaved("customer_name", form.customer_name)}
+                        onChange={(value) => updateCustomerField("customer_name", value)}
+                        onPick={pickCustomerContact}
+                        options={customerOptions}
                         placeholder={t("selectCustomer")}
                         emptyText={t("noSavedItems")}
                         addText={t("addToList", { name: form.customer_name.trim() })}
@@ -956,9 +1112,9 @@ function Receipts() {
                     <label>{t("companyName")} <b>*</b>
                       <SearchCombo
                         value={form.company_name}
-                        onChange={(value) => update("company_name", value)}
-                        onPick={(option) => update("company_name", option.value)}
-                        options={filterSaved("company_name", form.company_name)}
+                        onChange={(value) => updateCustomerField("company_name", value)}
+                        onPick={pickCompanyContact}
+                        options={companyOptions}
                         placeholder={t("selectCompany")}
                         emptyText={t("noSavedItems")}
                         addText={t("addToList", { name: form.company_name.trim() })}
@@ -966,12 +1122,16 @@ function Receipts() {
                       />
                     </label>
                     <label>{t("phoneNumber")} <b>*</b>
-                      <FieldIcon>
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M7 3h4l1 4-2 1a12 12 0 006 6l1-2 4 1v4a2 2 0 01-2 2A16 16 0 015 5a2 2 0 012-2z" fill="none" stroke="currentColor" strokeWidth="1.6" />
-                        </svg>
-                        <input value={form.phone} onChange={(event) => update("phone", event.target.value)} placeholder="+964-00000000" />
-                      </FieldIcon>
+                      <SearchCombo
+                        value={form.phone}
+                        onChange={(value) => update("phone", value)}
+                        onPick={(option) => update("phone", option.value)}
+                        options={phoneOptions}
+                        placeholder={t("phoneAutoHint")}
+                        emptyText={t("noSavedPhones")}
+                        addText={t("usePhone", { name: form.phone.trim() })}
+                        onAdd={(name) => update("phone", name)}
+                      />
                     </label>
                   </div>
                 </section>

@@ -214,6 +214,38 @@ async function listOptions(req, res) {
   }
 }
 
+async function listContacts(req, res) {
+  try {
+    const result = await query(`
+      SELECT
+        COALESCE(NULLIF(TRIM(customer_name), ''), '') AS customer_name,
+        COALESCE(NULLIF(TRIM(company_name), ''), '') AS company_name,
+        COALESCE(NULLIF(TRIM(phone), ''), '') AS phone,
+        MAX(id)::int AS id
+      FROM receipts
+      WHERE COALESCE(NULLIF(TRIM(phone), ''), '') <> ''
+        AND (
+          COALESCE(NULLIF(TRIM(customer_name), ''), '') <> ''
+          OR COALESCE(NULLIF(TRIM(company_name), ''), '') <> ''
+        )
+      GROUP BY 1, 2, 3
+      ORDER BY MAX(id) DESC
+      LIMIT 500
+    `);
+    return res.json({
+      items: result.rows.map((row) => ({
+        id: row.id,
+        customer_name: row.customer_name,
+        company_name: row.company_name,
+        phone: row.phone,
+      })),
+    });
+  } catch (error) {
+    console.error("List contacts error:", error);
+    return res.status(500).json({ message: "Could not load contacts." });
+  }
+}
+
 async function addOption(req, res) {
   try {
     const kind = String(req.body.kind || "").trim();
@@ -512,6 +544,7 @@ module.exports = {
   remove,
   listOptions,
   addOption,
+  listContacts,
   seedReceiptOptions,
   ensureReceiptInvoices,
   getInvoice,

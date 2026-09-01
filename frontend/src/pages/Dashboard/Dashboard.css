@@ -12,8 +12,34 @@
   gap: 12px;
 }
 
+.dash-dates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+}
+
+.dash-dates label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dash-dates input[type="date"] {
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+}
+
 .dash-range {
   display: inline-flex;
+  flex-wrap: wrap;
   padding: 4px;
   border-radius: 999px;
   background: var(--card);
@@ -22,7 +48,7 @@
 
 .dash-range button {
   height: 34px;
-  padding: 0 14px;
+  padding: 0 12px;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -31,9 +57,8 @@
   cursor: pointer;
 }
 
-.dash-range button.is-on {
-  background: var(--brand);
-  color: #fff;
+.dash-range button:hover {
+  color: var(--brand);
 }
 
 .dash-tools {
@@ -75,6 +100,10 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
+}
+
+.dash-kpis-money .kpi strong {
+  font-size: 22px;
 }
 
 .kpi {
