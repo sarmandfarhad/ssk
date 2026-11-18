@@ -1,0 +1,12 @@
+{
+  "name": "ssk-qr-desk",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.9.0",
+    "qrcode": "^1.5.4"
+  }
+}

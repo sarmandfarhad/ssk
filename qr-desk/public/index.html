@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Desk · SSK</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="top">
+      <div>
+        <p class="eyebrow">SSK</p>
+        <h1>Desk</h1>
+        <p class="lede">Add an ID by hand. Each one keeps a date and time, and is either available or not available. Scan the QR code to Take or Put and write a name.</p>
+      </div>
+      <div class="clock-card card">
+        <p id="clock" class="clock">Baghdad time</p>
+        <p class="hours">Scan is open now</p>
+        <p id="open-state" class="pill">Checking</p>
+      </div>
+    </header>
+
+    <section class="stats" id="stats" aria-label="Desk totals"></section>
+
+    <main class="layout">
+      <div class="stack">
+        <form id="add-form" class="card">
+          <h2>Add an ID</h2>
+          <label>
+            ID number
+            <input id="number" name="number" inputmode="numeric" autocomplete="off" maxlength="12" pattern="\d{1,12}" required />
+          </label>
+          <label>
+            Date and time
+            <input id="at" name="at" type="datetime-local" required />
+          </label>
+          <div>
+            <p class="field-label">Status</p>
+            <div class="segment" role="radiogroup" aria-label="Status">
+              <label>
+                <input type="radio" name="available" value="yes" checked />
+                <span class="is-yes">Available</span>
+              </label>
+              <label>
+                <input type="radio" name="available" value="no" />
+                <span class="is-no">Not available</span>
+              </label>
+            </div>
+          </div>
+          <button class="btn brand" type="submit">Add ID</button>
+          <p id="form-msg" class="msg" role="status"></p>
+        </form>
+
+      </div>
+
+      <aside class="card qr-card">
+        <p class="eyebrow">One connection</p>
+        <h2>One QR code</h2>
+        <p class="lede">Scan this code now. Choose Take or Put, then write a name.</p>
+        <div class="qr-frame">
+          <img id="qr" src="/qr.svg" width="240" height="240" alt="QR code that opens the scan page" />
+        </div>
+        <p id="qr-note" class="hours">Checking hours…</p>
+        <p id="scan-url" class="url"></p>
+      </aside>
+    </main>
+
+    <section class="card table-card" aria-labelledby="list-title">
+      <div class="row-head">
+        <h2 id="list-title">IDs</h2>
+        <label class="search">
+          Search
+          <input id="search" type="search" placeholder="Number or name" autocomplete="off" />
+        </label>
+      </div>
+      <div id="list"></div>
+    </section>
+  </div>
+  <script src="/dashboard.js"></script>
+</body>
+</html>

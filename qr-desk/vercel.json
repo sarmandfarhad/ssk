@@ -1,0 +1,11 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/qr.svg", "destination": "/api/qr" }
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "includeFiles": "data.json"
+    }
+  }
+}
